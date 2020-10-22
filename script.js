@@ -21,7 +21,7 @@ constants = {
     piedPiper: {
         startLocation: {
             x: 130,
-            y: 300
+            y: 280
         },
         spriteSize: {
             width: 32,
@@ -39,7 +39,12 @@ constants = {
     },
 }
 
-let sceneState = 0;
+let state = {
+    scene: 0,
+    initRats: false,
+    followPiper: false,
+    deadRats: false,
+};
 
 
 let isInsideCanvas = (position) => {
@@ -47,7 +52,7 @@ let isInsideCanvas = (position) => {
      * 0 - canvas size -> blank
      * canvas - canvas*2 -> castle
      * canvas*2 - canvas*3 -> houses
-     * canvas*3 - canvas*4 -> sea/ cave
+     * canvas*3 - canvas*4 -> cliff
      */
     return position >= 0 && position < 5*window.innerWidth;
 }
@@ -55,7 +60,7 @@ let isInsideCanvas = (position) => {
 const [PIED_PIPER, RAT] = [0, 1];
 
 class Character {
-    constructor(x, y, image, speed, animationSpeed, state, animationMod, projectileFall, characterName) {
+    constructor(x, y, image, speed, animationSpeed, state, animationMod, projectileFall, characterName, dialogues) {
         this.x = x;
         this.y = y;
         this.image = image;
@@ -75,16 +80,15 @@ class Character {
         this.animationMod = animationMod;
         this.projectileFall = projectileFall;
         this.characterName = characterName;
+        this.dialogues = dialogues;
     }
 
     update() {
         if(this.projectileFall == 0) {
             if (this.movingDirection.right) {
-                if(this.characterName == PIED_PIPER && this.x >= window.innerWidth*0.40 && sceneState == 3) {
-                    this.x -= this.speed;
-                }
                 this.x += this.speed;
-                if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
+                if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2) ||
+                (this.characterName == PIED_PIPER && this.x >= window.innerWidth*0.40 && state.scene == 3)){
                     this.x-=this.speed;
                 }
                 this.state = 2;
@@ -106,8 +110,39 @@ class Character {
             this.state = 2;
             this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;   
         }
+        // Dialogue Triggers
+        if(this.characterName == PIED_PIPER){
+            this.dialogues.forEach((dialogue, index, reference) => {
+                if(dialogue.name === "bitch betta have my money" && !state.deadRats){
+                    return;
+                }
+                if (dialogue.triggerScene == state.scene && Math.abs(this.x - dialogue.triggerPosition) < 20 && !dialogue.triggered) {
+                    dialogue.trigger();
+                    for (let direction in this.movingDirection) {
+                        this.movingDirection[direction] = false;
+                    }
+                }
+            });
+        }
     }
 }
+
+class Dialog {
+    constructor(name, triggerPosition, triggerScene, dialogues) {
+        this.name = name;
+        this.triggerPosition = triggerPosition;
+        this.triggerScene = triggerScene;
+        this.dialogues = dialogues;
+        this.triggered = false;
+        this.triggerIndex = 0;
+    }
+
+    trigger() {
+        this.triggered = true;
+    }
+}
+
+
 
 let imageLoader = (imagePath) => {
     return new Promise((resolve, reject) => {
@@ -142,37 +177,20 @@ let updateRatPositionForSceneChange = (rats, direction) => {
             rats[i].x = constants.piedPiper.startLocation.x - 130;
         }
     }
+    if(state.scene === 3 || state.scene == 2){
+        for(let i=0;i< constants.numberOfRats; i++){
+            if(!rats[i].projectileFall)
+            rats[i].y = constants.piedPiper.startLocation.y - 10 + Math.random()*30;
+        }
+    }
 }
 
 let sceneUpdate = (position, piedPiper, rats) => {
     let windowWidth = window.innerWidth;
-    // if (position <= constants.piedPiper.startLocation.x) {
-    //     if(sceneState === 1) {
-    //         piedPiper.x = windowWidth*3/4;
-    //         sceneState = 0;
-    //         updateRatPositionForSceneChange(rats, -1);
-    //     }
-    //     return sceneState;
-    // }
-    // else if(position < windowWidth*3/4) {
-    //     return sceneState;
-    // }
-    // else if (position >= windowWidth*3/4 && position < windowWidth*5){
-    //     if(sceneState == 0) {
-    //         sceneState = 1;
-    //         piedPiper.x = constants.piedPiper.startLocation.x;
-    //         updateRatPositionForSceneChange(rats, 1);
-    //     }
-    //     if (sceneState === 1) {
-    //         // fill dialogue
-    //     }
-    //     return sceneState;
-    // }
-
-    switch(sceneState) {
+    switch(state.scene) {
         case 0: {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
-                sceneState = 1;
+                state.scene = 1;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatPositionForSceneChange(rats, 1);
             } 
@@ -180,24 +198,24 @@ let sceneUpdate = (position, piedPiper, rats) => {
         }
         case 1: {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
-                sceneState = 2;
+                state.scene = 2;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatPositionForSceneChange(rats, 1);
             } else if(position <= constants.piedPiper.startLocation.x) {
                 piedPiper.x = windowWidth*3/4;
-                sceneState = 0;
+                state.scene = 0;
                 updateRatPositionForSceneChange(rats, -1);
             }
             break;
         }
         case 2: {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
-                sceneState = 3;
+                state.scene = 3;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatPositionForSceneChange(rats, 1);
             } else if(position <= constants.piedPiper.startLocation.x) {
                 piedPiper.x = windowWidth*3/4;
-                sceneState = 1;
+                state.scene = 1;
                 updateRatPositionForSceneChange(rats, -1);
             }
             break;
@@ -205,21 +223,21 @@ let sceneUpdate = (position, piedPiper, rats) => {
         case 3: {
             if(position <= constants.piedPiper.startLocation.x) {
                 piedPiper.x = windowWidth*3/4;
-                sceneState = 2;
+                
+                state.scene = 2;
                 updateRatPositionForSceneChange(rats, -1);
             }
             break;
         }
         
     }
-    return sceneState;
+    return state.scene;
 
 }
 
-let followPiper = false;
 let updateRat = (rat, piedPiper) => {
 
-    if(followPiper){
+    if(state.followPiper){
         if(Math.floor(rat.x) < piedPiper.x  ){
             rat.movingDirection.right = true;
             rat.movingDirection.left = false
@@ -239,7 +257,6 @@ let updateRat = (rat, piedPiper) => {
             left: pos*window.innerWidth,
             right: (pos+1)*window.innerWidth
         } 
-        console.log(ratRange, rat.x)
         if(Math.abs(rat.x - ratRange.left) < constants.rat.spriteSize.width)
             rat.state = 2;
         else if (Math.abs(rat.x - ratRange.right) < constants.rat.spriteSize.width ){
@@ -255,7 +272,7 @@ let updateRat = (rat, piedPiper) => {
         }
     }
 
-    if(sceneState == 3 && rat.x >= window.innerWidth*0.40) {
+    if(state.scene == 3 && rat.x >= window.innerWidth*0.40) {
         rat.projectileFall = 1;
     }
     rat.update();
@@ -264,8 +281,8 @@ let updateRat = (rat, piedPiper) => {
 $(document).ready(async () => {
 
     $('#followPiperBtn').click(() => {
-        followPiper = !followPiper;
-        if(followPiper)
+        state.followPiper = !state.followPiper;
+        if(state.followPiper)
         $('#followPiperBtn').text("Unfollow Piper");
         else
         $('#followPiperBtn').text("Follow Piper");
@@ -285,7 +302,7 @@ $(document).ready(async () => {
         let king = await imageLoader("images/kingSprite.png");
 
 
-
+        let dialogueBox = await imageLoader("images/dialogueBox.png")
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
         
@@ -303,6 +320,55 @@ $(document).ready(async () => {
                 RAT,
             ));
         }
+        let dialogues = [
+            new Dialog(
+                "init",
+                515,
+                0,
+                [
+                    "Villager #1: They’re in my storeroom!",
+                    "Villager #2: They’re in my cupboards!",
+                    "Villager #3: They’re in my baby’s cot!",
+                    "Villager #1: What can we do?",
+                    "Villager #2: We’ve tried everything! Cats, poisons, rat catchers...",
+                    "Villager #2: NOTHING works!"
+                ]
+            ),
+            new Dialog(
+                "king",
+                550,
+                1,
+                [
+                    "King: Does anyone have a new idea?",
+                    "King: There must be something we can do.",
+                    "Pied Piper: I am called the Pied Piper.",
+                    "Pied Piper: What will you pay me if...",
+                    "Pied Piper: I get rid of every single rat in Hamlin?",
+                    "King: Impossible. It can’t be done.",
+                    "Pied Piper: Try me. If I’m successful...",
+                    "Pied Piper: I demand a hundred gold coins!",
+                    "King: Surely, a small price to pay for salvation!"
+                ]
+            ),
+            new Dialog(
+                "bitch betta have my money",
+                550,
+                1,
+                [
+                    "Pied Piper: I have now wiped out every single rat in Hamlin.",
+                    "Pied Piper: Now it's up to you to keep your end of the promise!",
+                    "King: For the love of God! Wonders never cease! …",
+                    "King: It was quite magical what you did there, wouldn't you agree?!",
+                    "Pied Piper : Well, of course! It is said my music could lure the Lord himself!",
+                    "King: Now what is to say that you didn't bring the rats yourself...",
+                    "King: to pull this nasty little trick of yours?!",
+                    "Pied Piper: Outrageous!",
+                    "King: You will have no reward! You're henceforth banished!",
+                    "Pied Piper: Oh my! Your greed will cost you dearly!"
+                ]
+            )
+        ];
+
         let piedPiper = new Character(
             constants.piedPiper.startLocation.x,
             constants.piedPiper.startLocation.y,
@@ -313,13 +379,43 @@ $(document).ready(async () => {
             constants.piedPiper.animationMod,
             constants.piedPiper.projectileFall,
             PIED_PIPER,
+            dialogues
         );
+
+        drawDialogue = text => {
+            ctx.drawImage(dialogueBox, 200, 400, window.innerWidth/2, 75);
+            ctx.font = "18px Comic Sans MS";
+            ctx.fillText(text, 220, 450);
+        }
+
+        // hideScene = () => {
+        //     $("#dialogue-container").hide();
+        // }
+
+        progressDialogue = () => {
+            piedPiper.dialogues.forEach((dialogue, index, reference) => {
+                if (dialogue.triggered) {
+                    dialogue.triggerIndex++;
+                    if (dialogue.triggerIndex === dialogue.dialogues.length) {                        
+                        // The dialogue is done, destroy it
+                        if(dialogue.name === "init"){
+                            state.initRats = true;
+                        }
+                        reference.splice(index, 1);
+                        // hideScene();
+                    }
+                }
+            });
+        }
         window.addEventListener("keydown", (e) => {
             if (e.keyCode == 37) {
                 piedPiper.movingDirection.left = true; 
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = true;
+            } else if (e.keyCode == 17){
+                state.followPiper = true;
             }
+            
             return false;
         });
 
@@ -328,122 +424,68 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.left = false;
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = false;
-            }
+            } else if (e.keyCode == 17) { //
+                state.followPiper = false;
+            } else if (e.keyCode == 32) {
+                progressDialogue();
+            }            
             return false;
         });
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
             ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
 
-            if (sceneState==0){
-
-                // ctx.drawImage(castleBgImage, 510, 50, 210, 160);
-    
-                //<upper path>
+            if (state.scene==0){
                 ctx.drawImage(houseSprite,0,   350,350,350,0,  200, 100, 90);
-                // ctx.drawImage(houseSprite,350, 350,350,350,80, 150, 100, 90);
                 ctx.drawImage(houseSprite,720, 350,350,350,160,200, 100, 90); 
-                // ctx.drawImage(houseSprite,1040,350,350,350,240,150, 110, 90);
                 ctx.drawImage(houseSprite,0,   350,350,350,310,  200, 100, 90);
                 ctx.drawImage(houseSprite,350, 350,350,350,390, 200, 100, 90);
-                //</upper path>
-    
-    
-                //<lower path>
                 ctx.drawImage(houseSprite,0,   0,350,350,0,  362, 100, 90);
-                // ctx.drawImage(houseSprite,350, 0,350,350,70, 362, 100, 90);
                 ctx.drawImage(houseSprite,720, 0,350,350,150,362, 100, 90);
-                // ctx.drawImage(houseSprite,1040,0,350,350,230,362, 100, 90);
-    
                 ctx.drawImage(houseSprite,0,   350,350,350,285,  375, 100, 90);
-                // ctx.drawImage(houseSprite,350, 350,350,350,375, 375, 100, 90);
                 ctx.drawImage(houseSprite,720, 350,350,350,465,375, 100, 90); 
-                // ctx.drawImage(houseSprite,1040,350,350,350,545,375, 110, 90);
-    
                 ctx.drawImage(houseSprite,0,   0,350,350,615,  362, 100, 90);
-                // ctx.drawImage(houseSprite,350, 0,350,350,685, 362, 100, 90);
-                // ctx.drawImage(houseSprite,720, 0,350,350,755,362, 100, 90);
                 ctx.drawImage(houseSprite,1040,0,350,350,825,362, 100, 90);
-    
-                //</lower path>
-    
-                //<random people>
                 ctx.drawImage(randompeople,100,0,350,350,315, 245, 230, 220);
-                // ctx.drawImage(randompeople,0,0,350,350,215, 195, 230, 220);
-                // ctx.drawImage(randompeople,0,0,350,350,115, 195, 230, 220);
                 ctx.drawImage(randompeople,200,0,350,350,15, 245, 230, 220);
-    
-                // ctx.drawImage(randompeople,0,0,350,350,715, 195, 230, 220);
                 ctx.drawImage(randompeople,150,0,350,350,515, 300, 230, 220);
-    
-                // ctx.drawImage(king,550, 190, 50, 50);
-    
-    
-                //</random people>
             }
 
-            if (sceneState==1){
-
+            if (state.scene==1){
                 ctx.drawImage(castleBgImage, 510, 110, 210, 160);
-    
-    
-                //<upper path>
-                // ctx.drawImage(houseSprite,0,   350,350,350,0,  150, 100, 90);
                 ctx.drawImage(houseSprite,340, 350,350,350,80, 200, 100, 90);
-                // ctx.drawImage(houseSprite,720, 350,350,350,160,150, 100, 90); 
                 ctx.drawImage(houseSprite,1040,350,350,350,240,200, 110, 90);
-                // ctx.drawImage(houseSprite,0,   350,350,350,310,  150, 100, 90);
-                // ctx.drawImage(houseSprite,350, 350,350,350,390, 150, 100, 90);
-                //</upper path>
-    
-    
-                //<lower path>
                 ctx.drawImage(houseSprite,0,   0,350,350,0,  392, 100, 90);
                 ctx.drawImage(houseSprite,350, 0,350,350,70, 392, 100, 90);
-                // ctx.drawImage(houseSprite,720, 0,350,350,150,362, 100, 90);
                 ctx.drawImage(houseSprite,1040,0,350,350,230,392, 100, 90);
-    
                 ctx.drawImage(houseSprite,0,   350,350,350,285,  395, 100, 90);
                 ctx.drawImage(houseSprite,350, 350,350,350,375, 395, 100, 90);
-                // ctx.drawImage(houseSprite,720, 350,350,350,465,375, 100, 90); 
                 ctx.drawImage(houseSprite,1040,350,350,350,545,395, 110, 90);
-    
-                // ctx.drawImage(houseSprite,0,   0,350,350,615,  362, 100, 90);
                 ctx.drawImage(houseSprite,350, 0,350,350,685, 382, 100, 90);
                 ctx.drawImage(houseSprite,720, 0,350,350,755,382, 100, 90);
                 ctx.drawImage(houseSprite,1040,0,350,350,825,382, 100, 90);
-    
-                //</lower path>
-    
-                //<random people>
-                // ctx.drawImage(randompeople,100,0,350,350,315, 195, 230, 220);
                 ctx.drawImage(randompeople,0,0,350,350,215, 245, 230, 220);
                 ctx.drawImage(randompeople,100,0,350,350,115, 245, 230, 220);
-                // ctx.drawImage(randompeople,200,0,350,350,15, 195, 230, 220);
-    
                 ctx.drawImage(randompeople,0,0,350,350,715, 245, 230, 220);
-                // ctx.drawImage(randompeople,150,0,350,350,515, 250, 230, 220);
-    
                 ctx.drawImage(king,550, 260, 50, 50);
-    
-    
-                //</random people>
             }
 
-
-            for(let i=0;i<constants.numberOfRats;i++){
-                updateRat(rats[i], piedPiper);
-                ctx.drawImage(ratSprite,
-                    Math.floor(rats[i].animationStep) * constants.rat.spriteSize.width, // sprite offset
-                    (rats[i].state -1 ) * constants.rat.spriteSize.height,
-                    constants.rat.spriteSize.width,
-                    constants.rat.spriteSize.height,
-                    rats[i].x,
-                    rats[i].y,
-                    constants.rat.actualSize.width,
-                    constants.rat.actualSize.height
+            if(state.initRats){
+                for(let i=0;i<constants.numberOfRats;i++){
+                    updateRat(rats[i], piedPiper);
+                    ctx.drawImage(ratSprite,
+                        Math.floor(rats[i].animationStep) * constants.rat.spriteSize.width, // sprite offset
+                        (rats[i].state -1 ) * constants.rat.spriteSize.height,
+                        constants.rat.spriteSize.width,
+                        constants.rat.spriteSize.height,
+                        rats[i].x,
+                        rats[i].y,
+                        constants.rat.actualSize.width,
+                        constants.rat.actualSize.height
                     );
                 }
+              
+            }
             piedPiper.update();
             ctx.drawImage(piedPiperSprite,
                 Math.floor(piedPiper.animationStep) * constants.piedPiper.spriteSize.width, // sprite offset
@@ -455,6 +497,12 @@ $(document).ready(async () => {
                 constants.piedPiper.actualSize.width,
                 constants.piedPiper.actualSize.height
             );
+
+            dialogues.forEach(dialogue => {
+                if (dialogue.triggered) {
+                    drawDialogue(dialogue.dialogues[dialogue.triggerIndex]);
+                }
+            });
             requestAnimationFrame(animate);
         }
     })();
