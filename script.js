@@ -205,11 +205,9 @@ $(document).ready(async () => {
     
     let animate = await (async() => {
         let ctx = initCanvas("canvas");
-        let bgImage = await imageLoader("images/background.jpg");
-        let caveBgImage = await imageLoader("images/caveBackground.jpg");
-        // let seaBgImage = await imageLoader("images/seaBackground.jpg");
-        let bgImages = [bgImage, caveBgImage];
-            // , seaBgImage];
+        let bgImage = await imageLoader("images/background.png");
+        let cliffBgImage = await imageLoader("images/cliffBackground.png");
+        let bgImages = [bgImage, cliffBgImage];
 
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
