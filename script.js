@@ -1,6 +1,7 @@
 constants = {
     numberOfRats: 100,
     numberOfBoys: 6,
+    cliffEdge: window.innerWidth*0.37,
     pavement: {
         startY: 240,
         range: 100
@@ -50,6 +51,7 @@ constants = {
         animationSpeed: 0.2,
         startingState: 2,
         animationMod: 4,
+        rageAnimationMod: 10,
         projectileFall: 0,
     },
 }
@@ -60,6 +62,7 @@ let state = {
     followPiper: false,
     deadRats: false,
     enableBoySprites: 0,
+    dontMove: false,
 };
 
 
@@ -104,7 +107,7 @@ class Character {
             if (this.movingDirection.right) {
                 this.x += this.speed;
                 if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2) ||
-                (this.characterName == PIED_PIPER && this.x >= window.innerWidth*0.40 && state.scene == 3)){
+                (this.characterName == PIED_PIPER && this.x >= constants.cliffEdge && state.scene == 3)){
                     this.x-=this.speed;
                 }
                 this.state = 2;
@@ -137,6 +140,7 @@ class Character {
                     for (let direction in this.movingDirection) {
                         this.movingDirection[direction] = false;
                     }
+                    state.dontMove = true;
                 }
             });
         }
@@ -305,8 +309,7 @@ let updateRat = (rat, piedPiper) => {
             rat.movingDirection.left = false;
         }
     }
-
-    if(state.scene == 3 && rat.x >= window.innerWidth*0.40) {
+    if(state.scene == 3 && rat.x >= window.innerWidth*0.35) {
         rat.projectileFall = 1;
         state.deadRats = 1;
     }
@@ -323,6 +326,50 @@ $(document).ready(async () => {
         $('#followPiperBtn').text("Follow Piper");
     });
     
+    let renderArrows = () => {
+        switch (state.scene){
+            case 0:{
+                $('#leftArrow').css('display','none'); 
+                $('#rightArrow').css('display','block'); 
+                break;
+            }
+            case 1:{
+                $('#leftArrow').css('display','none'); 
+                $('#rightArrow').css('display','block'); 
+                break;
+            }
+            case 2:{
+                if(state.deadRats){    
+                    if(state.enableBoySprites){
+                        $('#leftArrow').css('display','none'); 
+                        $('#rightArrow').css('display','block'); 
+                    }
+                    else{
+                        $('#leftArrow').css('display','block'); 
+                        $('#rightArrow').css('display','none'); 
+                    }
+                }
+                else{
+                    $('#leftArrow').css('display','none'); 
+                    $('#rightArrow').css('display','block');
+                }
+                break;
+            }
+            case 3:{
+                if(state.deadRats){
+                    if(state.enableBoySprites){
+                        $('#leftArrow').css('display','none'); 
+                    }
+                    else{
+                        $('#leftArrow').css('display','block'); 
+                    }
+                }
+                $('#rightArrow').css('display','none'); 
+                break;
+            }
+            
+        }
+    }
     let animate = await (async() => {
         let ctx = initCanvas("canvas");
         let bgImage = await imageLoader("images/background.png");
@@ -339,8 +386,8 @@ $(document).ready(async () => {
 
         let dialogueBox = await imageLoader("images/dialogueBox.png")
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
+        let piedPiperMusicSprite = await imageLoader("images/piedPiperMusicSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
-        let boySprite = await imageLoader("images/boys/boySprites1.png");
         let rats = [];
         for(let i =0;i<constants.numberOfRats;i++){
             rats.push(new Character(
@@ -382,7 +429,9 @@ $(document).ready(async () => {
                     "King: Impossible. It can’t be done.",
                     "Pied Piper: Try me. If I’m successful...",
                     "Pied Piper: I demand a hundred gold coins!",
-                    "King: Surely, a small price to pay for salvation!"
+                    "King: Surely, a small price to pay for salvation!",
+                    "Hold CTRL to lure the rats",
+                    "Release CTRL to leave the rats to themselves"
                 ]
             ),
             new Dialog(
@@ -394,12 +443,21 @@ $(document).ready(async () => {
                     "Pied Piper: Now it's up to you to keep your end of the promise!",
                     "King: For the love of God! Wonders never cease! …",
                     "King: It was quite magical what you did there, wouldn't you agree?!",
-                    "Pied Piper : Well, of course! It is said my music could lure the Lord himself!",
+                    "Pied Piper : Of course! It is said my music could lure the Lord himself!",
                     "King: Now what is to say that you didn't bring the rats yourself...",
                     "King: to pull this nasty little trick of yours?!",
                     "Pied Piper: Outrageous!",
                     "King: You will have no reward! You're henceforth banished!",
                     "Pied Piper: Oh my! Your greed will cost you dearly!"
+                ]
+            ),
+            new Dialog(
+                "drowing rats",
+                constants.cliffEdge,
+                3,
+                [
+                    "Pied Piper: Take that you filthy vermin!",
+                    "Pied Piper: I better go collect my money now!" 
                 ]
             )
         ];
@@ -434,16 +492,12 @@ $(document).ready(async () => {
             PIED_PIPER,
             dialogues
         );
-
         drawDialogue = text => {
             ctx.drawImage(dialogueBox, 200, 400, window.innerWidth/2, 75);
             ctx.font = "18px Comic Sans MS";
             ctx.fillText(text, 220, 450);
         }
 
-        // hideScene = () => {
-        //     $("#dialogue-container").hide();
-        // }
 
         progressDialogue = () => {
             piedPiper.dialogues.forEach((dialogue, index, reference) => {
@@ -455,11 +509,30 @@ $(document).ready(async () => {
                             state.initRats = true;
                         }
                         reference.splice(index, 1);
-                        // hideScene();
+                        state.dontMove = false;
                     }
                 }
             });
         }
+        shiftPiper = text => {
+            if(text === "play"){
+                piedPiper.image = piedPiperMusicSprite;
+                piedPiper.animationMod = 10;
+                constants.piedPiper.actualSize.height = 69;
+                constants.piedPiper.spriteSize.height = 69;
+                constants.piedPiper.actualSize.width = 60.76;
+                constants.piedPiper.spriteSize.width = 60.76;
+            }
+            else if (text === "stop"){
+                piedPiper.image = piedPiperSprite;
+                piedPiper.animationMod = 4;
+                constants.piedPiper.actualSize.height = 48;
+                constants.piedPiper.spriteSize.height = 48;
+                constants.piedPiper.actualSize.width = 32;
+                constants.piedPiper.spriteSize.width = 32;
+            }
+        }
+
         window.addEventListener("keydown", (e) => {
             if (e.keyCode == 37) {
                 piedPiper.movingDirection.left = true; 
@@ -467,6 +540,7 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.right = true;
             } else if (e.keyCode == 17){
                 state.followPiper = true;
+                shiftPiper("play");
             }
             
             return false;
@@ -479,6 +553,7 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.right = false;
             } else if (e.keyCode == 17) { //
                 state.followPiper = false;
+                shiftPiper("stop");
             } else if (e.keyCode == 32) {
                 progressDialogue();
             }            
@@ -487,7 +562,7 @@ $(document).ready(async () => {
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
             ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
-
+            renderArrows();
             if (state.scene==0){
                 ctx.drawImage(houseSprite,0,   350,350,350,0,  200, 100, 90);
                 ctx.drawImage(houseSprite,720, 350,350,350,160,200, 100, 90); 
@@ -563,11 +638,12 @@ $(document).ready(async () => {
                 }
             }
 
-            
-            piedPiper.update();
-            ctx.drawImage(piedPiperSprite,
+            if(!state.dontMove){
+                piedPiper.update();
+            }
+            ctx.drawImage(piedPiper.image,
                 Math.floor(piedPiper.animationStep) * constants.piedPiper.spriteSize.width, // sprite offset
-                piedPiper.state * constants.piedPiper.spriteSize.height,
+                (piedPiper.state -1) * constants.piedPiper.spriteSize.height,
                 constants.piedPiper.spriteSize.width,
                 constants.piedPiper.spriteSize.height,
                 piedPiper.x % window.innerWidth,
@@ -575,7 +651,7 @@ $(document).ready(async () => {
                 constants.piedPiper.actualSize.width,
                 constants.piedPiper.actualSize.height
             );
-
+            
             dialogues.forEach(dialogue => {
                 if (dialogue.triggered) {
                     drawDialogue(dialogue.dialogues[dialogue.triggerIndex]);

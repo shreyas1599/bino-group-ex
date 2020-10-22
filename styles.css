@@ -7,3 +7,30 @@
     left: 50%;
     transform: translate(-50%, -50%);     
 }
+#leftArrow{
+    position: absolute;
+    top: 60%;
+    left: 15%;
+}
+#rightArrow{
+    position: absolute;
+    top: 60%;
+    right: 15%;
+}
+
+.blinking {
+    animation: blinkingText 1s infinite;
+}
+
+/* Specifies the animation and transparency for the blinking text */
+@keyframes blinkingText {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: .5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
