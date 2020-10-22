@@ -209,6 +209,11 @@ $(document).ready(async () => {
         let cliffBgImage = await imageLoader("images/cliffBackground.png");
         let bgImages = [bgImage, cliffBgImage];
 
+        let castleBgImage = await imageLoader("images/castleSprite.png");
+        let houseSprite = await imageLoader("images/houseSprites.png");
+        let randompeople = await imageLoader("images/randomPeopleSprite.png");
+        let king = await imageLoader("images/kingSprite.png");
+
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
         
@@ -253,6 +258,52 @@ $(document).ready(async () => {
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
             ctx.drawImage(bgImages[chooseBg(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
+
+            ctx.drawImage(castleBgImage, 510, 50, 210, 160);
+
+            //<upper path>
+            ctx.drawImage(houseSprite,0,   350,350,350,0,  150, 100, 90);
+            ctx.drawImage(houseSprite,350, 350,350,350,80, 150, 100, 90);
+            ctx.drawImage(houseSprite,720, 350,350,350,160,150, 100, 90); 
+            ctx.drawImage(houseSprite,1040,350,350,350,240,150, 110, 90);
+            ctx.drawImage(houseSprite,0,   350,350,350,310,  150, 100, 90);
+            ctx.drawImage(houseSprite,350, 350,350,350,390, 150, 100, 90);
+            //</upper path>
+
+
+            //<lower path>
+            ctx.drawImage(houseSprite,0,   0,350,350,0,  362, 100, 90);
+            ctx.drawImage(houseSprite,350, 0,350,350,70, 362, 100, 90);
+            ctx.drawImage(houseSprite,720, 0,350,350,150,362, 100, 90);
+            ctx.drawImage(houseSprite,1040,0,350,350,230,362, 100, 90);
+
+            ctx.drawImage(houseSprite,0,   350,350,350,285,  375, 100, 90);
+            ctx.drawImage(houseSprite,350, 350,350,350,375, 375, 100, 90);
+            ctx.drawImage(houseSprite,720, 350,350,350,465,375, 100, 90); 
+            ctx.drawImage(houseSprite,1040,350,350,350,545,375, 110, 90);
+
+            ctx.drawImage(houseSprite,0,   0,350,350,615,  362, 100, 90);
+            ctx.drawImage(houseSprite,350, 0,350,350,685, 362, 100, 90);
+            ctx.drawImage(houseSprite,720, 0,350,350,755,362, 100, 90);
+            ctx.drawImage(houseSprite,1040,0,350,350,825,362, 100, 90);
+
+            //</lower path>
+
+            //<random people>
+            ctx.drawImage(randompeople,0,0,350,350,315, 195, 230, 220);
+            ctx.drawImage(randompeople,0,0,350,350,215, 195, 230, 220);
+            ctx.drawImage(randompeople,0,0,350,350,115, 195, 230, 220);
+            ctx.drawImage(randompeople,0,0,350,350,15, 195, 230, 220);
+
+            ctx.drawImage(randompeople,0,0,350,350,715, 195, 230, 220);
+            ctx.drawImage(randompeople,0,0,350,350,815, 195, 230, 220);
+
+            ctx.drawImage(king,550, 190, 50, 50);
+
+
+            //</random people>
+
+
             for(let i=0;i<constants.numberOfRats;i++){
                 updateRat(rats[i], piedPiper);
                 ctx.drawImage(ratSprite,
