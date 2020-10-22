@@ -1,8 +1,23 @@
 constants = {
     numberOfRats: 100,
+    numberOfBoys: 6,
     pavement: {
         startY: 240,
         range: 100
+    },
+    boy: {
+        spriteSize: {
+            width: 47,
+            height: 71,
+        },
+        actualSize: {
+            width: 47,
+            height: 71,
+        },
+        animationSpeed: 0.2,
+        startingState: 1,
+        animationMod: 3,
+        projectileFall: 0,
     },
     rat: {
         spriteSize: {
@@ -44,6 +59,7 @@ let state = {
     initRats: false,
     followPiper: false,
     deadRats: false,
+    enableBoySprites: 0,
 };
 
 
@@ -167,32 +183,36 @@ let initCanvas = (canvasId) => {
 }
 
 // direction 1 => left to right scene change; -1 => reverse
-let updateRatPositionForSceneChange = (rats, direction) => {
+let updateRatOrBoyPositionForSceneChange = (rats, numberOfBoysOrRats, direction) => {
     if(direction == -1) {
-        for(let i = 0; i < constants.numberOfRats; i++) {
+        for(let i = 0; i < numberOfBoysOrRats; i++) {
             rats[i].x = window.innerWidth - rats[i].x;
         }
     } else if (direction == 1) {
-        for(let i = 0; i < constants.numberOfRats; i++) {
+        for(let i = 0; i < numberOfBoysOrRats; i++) {
             rats[i].x = constants.piedPiper.startLocation.x - 130;
         }
     }
     if(state.scene === 3 || state.scene == 2){
-        for(let i=0;i< constants.numberOfRats; i++){
+        for(let i=0;i< constants.numberOfBoysOrRats; i++){
             if(!rats[i].projectileFall)
             rats[i].y = constants.piedPiper.startLocation.y - 10 + Math.random()*30;
         }
     }
 }
 
-let sceneUpdate = (position, piedPiper, rats) => {
+
+let sceneUpdate = (position, piedPiper, rats, boys) => {
     let windowWidth = window.innerWidth;
     switch(state.scene) {
         case 0: {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
                 state.scene = 1;
                 piedPiper.x = constants.piedPiper.startLocation.x;
-                updateRatPositionForSceneChange(rats, 1);
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, 1);
+                }
             } 
             break;
         }
@@ -200,11 +220,17 @@ let sceneUpdate = (position, piedPiper, rats) => {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
                 state.scene = 2;
                 piedPiper.x = constants.piedPiper.startLocation.x;
-                updateRatPositionForSceneChange(rats, 1);
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, 1);
+                }
             } else if(position <= constants.piedPiper.startLocation.x) {
                 piedPiper.x = windowWidth*3/4;
                 state.scene = 0;
-                updateRatPositionForSceneChange(rats, -1);
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, -1);
+                }
             }
             break;
         }
@@ -212,21 +238,29 @@ let sceneUpdate = (position, piedPiper, rats) => {
             if (position >= windowWidth*3/4 && position < windowWidth*5) {
                 state.scene = 3;
                 piedPiper.x = constants.piedPiper.startLocation.x;
-                updateRatPositionForSceneChange(rats, 1);
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, 1);
+                } 
             } else if(position <= constants.piedPiper.startLocation.x) {
                 piedPiper.x = windowWidth*3/4;
                 state.scene = 1;
-                updateRatPositionForSceneChange(rats, -1);
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, -1);
+                }
             }
             break;
         }
         case 3: {
             if(position <= constants.piedPiper.startLocation.x) {
-                piedPiper.x = windowWidth*3/4;
-                
                 state.scene = 2;
-                updateRatPositionForSceneChange(rats, -1);
-            }
+                piedPiper.x = windowWidth*3/4;
+                updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
+                if(state.enableBoySprites) {
+                    updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, -1);
+                }
+            } 
             break;
         }
         
@@ -274,6 +308,7 @@ let updateRat = (rat, piedPiper) => {
 
     if(state.scene == 3 && rat.x >= window.innerWidth*0.40) {
         rat.projectileFall = 1;
+        state.deadRats = 1;
     }
     rat.update();
 }
@@ -305,7 +340,7 @@ $(document).ready(async () => {
         let dialogueBox = await imageLoader("images/dialogueBox.png")
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
-        
+        let boySprite = await imageLoader("images/boys/boySprites1.png");
         let rats = [];
         for(let i =0;i<constants.numberOfRats;i++){
             rats.push(new Character(
@@ -369,6 +404,24 @@ $(document).ready(async () => {
             )
         ];
 
+        
+        let boys = [];
+        let boySprites = [];
+        for(let i=1;i<=constants.numberOfBoys;i++) {
+            let boySprite = await imageLoader("images/boys/boySprites" + i.toString() + ".png");
+            boySprites.push(boySprite);
+            boys.push(new Character(
+                Math.random()*window.innerWidth,
+                constants.pavement.startY+Math.random()*constants.pavement.range,
+                boySprite,
+                4+Math.random(),
+                constants.rat.animationSpeed,
+                1+Math.random(),
+                constants.rat.animationMod,
+                constants.rat.projectileFall,
+                RAT, 
+            ));
+        }
         let piedPiper = new Character(
             constants.piedPiper.startLocation.x,
             constants.piedPiper.startLocation.y,
@@ -433,7 +486,7 @@ $(document).ready(async () => {
         });
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
-            ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
+            ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
 
             if (state.scene==0){
                 ctx.drawImage(houseSprite,0,   350,350,350,0,  200, 100, 90);
@@ -468,6 +521,9 @@ $(document).ready(async () => {
                 ctx.drawImage(randompeople,100,0,350,350,115, 245, 230, 220);
                 ctx.drawImage(randompeople,0,0,350,350,715, 245, 230, 220);
                 ctx.drawImage(king,550, 260, 50, 50);
+                if(state.deadRats) {
+                    state.enableBoySprites = 1;
+                }
             }
 
             if(state.initRats){
@@ -485,7 +541,29 @@ $(document).ready(async () => {
                     );
                 }
               
+                
+               
             }
+    
+                //</random people>
+
+            if(state.deadRats && state.enableBoySprites) {
+                for(let i=0;i<constants.numberOfBoys;i++){
+                    updateRat(boys[i], piedPiper);
+                    ctx.drawImage(boySprites[i],
+                        Math.floor(boys[i].animationStep) * constants.boy.spriteSize.width, // sprite offset
+                        (boys[i].state -1 ) * constants.boy.spriteSize.height,
+                        constants.boy.spriteSize.width,
+                        constants.boy.spriteSize.height,
+                        boys[i].x,
+                        boys[i].y,
+                        constants.boy.actualSize.width,
+                        constants.boy.actualSize.height
+                        );
+                }
+            }
+
+            
             piedPiper.update();
             ctx.drawImage(piedPiperSprite,
                 Math.floor(piedPiper.animationStep) * constants.piedPiper.spriteSize.width, // sprite offset
