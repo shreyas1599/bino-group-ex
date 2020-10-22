@@ -318,13 +318,13 @@ let updateRat = (rat, piedPiper) => {
 
 $(document).ready(async () => {
 
-    $('#followPiperBtn').click(() => {
-        state.followPiper = !state.followPiper;
-        if(state.followPiper)
-        $('#followPiperBtn').text("Unfollow Piper");
-        else
-        $('#followPiperBtn').text("Follow Piper");
-    });
+    // $('#followPiperBtn').click(() => {
+    //     state.followPiper = !state.followPiper;
+    //     if(state.followPiper)
+    //     $('#followPiperBtn').text("Unfollow Piper");
+    //     else
+    //     $('#followPiperBtn').text("Follow Piper");
+    // });
     
     let renderArrows = () => {
         switch (state.scene){
