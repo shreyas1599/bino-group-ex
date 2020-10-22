@@ -15,7 +15,8 @@ constants = {
         },
         animationSpeed: 0.2,
         startingState: 1,
-        animationMod: 3
+        animationMod: 3,
+        projectileFall: 0,
     },
     piedPiper: {
         startLocation: {
@@ -33,12 +34,13 @@ constants = {
         speed: 7,
         animationSpeed: 0.2,
         startingState: 2,
-        animationMod: 4
+        animationMod: 4,
+        projectileFall: 0,
     },
-    scene: {
-        state: 0,
-    }
 }
+
+let sceneState = 0;
+
 
 let isInsideCanvas = (position) => {
     /**
@@ -50,8 +52,10 @@ let isInsideCanvas = (position) => {
     return position >= 0 && position < 5*window.innerWidth;
 }
 
+const [PIED_PIPER, RAT] = [0, 1];
+
 class Character {
-    constructor(x, y, image, speed, animationSpeed, state, animationMod) {
+    constructor(x, y, image, speed, animationSpeed, state, animationMod, projectileFall, characterName) {
         this.x = x;
         this.y = y;
         this.image = image;
@@ -68,25 +72,39 @@ class Character {
             right: false
         };
         this.animationStep = 0;
-        this.animationMod = animationMod
+        this.animationMod = animationMod;
+        this.projectileFall = projectileFall;
+        this.characterName = characterName;
     }
 
     update() {
-        if (this.movingDirection.right) {
+        if(this.projectileFall == 0) {
+            if (this.movingDirection.right) {
+                if(this.characterName == PIED_PIPER && this.x >= window.innerWidth*0.40 && sceneState == 3) {
+                    this.x -= this.speed;
+                }
+                this.x += this.speed;
+                if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
+                    this.x-=this.speed;
+                }
+                this.state = 2;
+                this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;    
+            } else if (this.movingDirection.left) {
+                this.x -= this.speed;
+                if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
+                    this.x+=this.speed;
+                }
+                this.state = 1;
+                this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;
+            }
+        } else {
             this.x += this.speed;
             if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
                 this.x-=this.speed;
             }
-
+            this.y = this.y + Math.sqrt(0.089*this.x);
             this.state = 2;
-            this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;    
-        } else if (this.movingDirection.left) {
-            this.x -= this.speed;
-            if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
-                this.x+=this.speed;
-            }
-            this.state = 1;
-            this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;
+            this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;   
         }
     }
 }
@@ -121,35 +139,81 @@ let updateRatPositionForSceneChange = (rats, direction) => {
         }
     } else if (direction == 1) {
         for(let i = 0; i < constants.numberOfRats; i++) {
-            rats[i].x = constants.piedPiper.startLocation.x;
+            rats[i].x = constants.piedPiper.startLocation.x - 130;
         }
     }
 }
 
-let chooseBg = (position, piedPiper, rats) => {
+let sceneUpdate = (position, piedPiper, rats) => {
     let windowWidth = window.innerWidth;
-    if (position <= constants.piedPiper.startLocation.x) {
-        if(constants.scene.state === 1) {
-            piedPiper.x = windowWidth*3/4;
-            constants.scene.state = 0;
-            updateRatPositionForSceneChange(rats, -1);
+    // if (position <= constants.piedPiper.startLocation.x) {
+    //     if(sceneState === 1) {
+    //         piedPiper.x = windowWidth*3/4;
+    //         sceneState = 0;
+    //         updateRatPositionForSceneChange(rats, -1);
+    //     }
+    //     return sceneState;
+    // }
+    // else if(position < windowWidth*3/4) {
+    //     return sceneState;
+    // }
+    // else if (position >= windowWidth*3/4 && position < windowWidth*5){
+    //     if(sceneState == 0) {
+    //         sceneState = 1;
+    //         piedPiper.x = constants.piedPiper.startLocation.x;
+    //         updateRatPositionForSceneChange(rats, 1);
+    //     }
+    //     if (sceneState === 1) {
+    //         // fill dialogue
+    //     }
+    //     return sceneState;
+    // }
+
+    switch(sceneState) {
+        case 0: {
+            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+                sceneState = 1;
+                piedPiper.x = constants.piedPiper.startLocation.x;
+                updateRatPositionForSceneChange(rats, 1);
+            } 
+            break;
         }
-        return constants.scene.state;
-    }
-    else if(position < windowWidth*3/4) {
-        return constants.scene.state;
-    }
-    else if (position >= windowWidth*3/4 && position < windowWidth*5){
-        if(constants.scene.state == 0) {
-            constants.scene.state = 1;
-            piedPiper.x = constants.piedPiper.startLocation.x;
-            updateRatPositionForSceneChange(rats, 1);
+        case 1: {
+            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+                sceneState = 2;
+                piedPiper.x = constants.piedPiper.startLocation.x;
+                updateRatPositionForSceneChange(rats, 1);
+            } else if(position <= constants.piedPiper.startLocation.x) {
+                piedPiper.x = windowWidth*3/4;
+                sceneState = 0;
+                updateRatPositionForSceneChange(rats, -1);
+            }
+            break;
         }
-        if (constants.scene.state === 1) {
-            // fill dialogue
+        case 2: {
+            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+                sceneState = 3;
+                piedPiper.x = constants.piedPiper.startLocation.x;
+                updateRatPositionForSceneChange(rats, 1);
+            } else if(position <= constants.piedPiper.startLocation.x) {
+                piedPiper.x = windowWidth*3/4;
+                sceneState = 1;
+                updateRatPositionForSceneChange(rats, -1);
+            }
+            break;
         }
-        return constants.scene.state;
+        case 3: {
+            if(position <= constants.piedPiper.startLocation.x) {
+                piedPiper.x = windowWidth*3/4;
+                sceneState = 2;
+                updateRatPositionForSceneChange(rats, -1);
+            }
+            break;
+        }
+        
     }
+    return sceneState;
+
 }
 
 let followPiper = false;
@@ -190,6 +254,10 @@ let updateRat = (rat, piedPiper) => {
             rat.movingDirection.left = false;
         }
     }
+
+    if(sceneState == 3 && rat.x >= window.innerWidth*0.40) {
+        rat.projectileFall = 1;
+    }
     rat.update();
 }
 
@@ -207,7 +275,7 @@ $(document).ready(async () => {
         let ctx = initCanvas("canvas");
         let bgImage = await imageLoader("images/background.png");
         let cliffBgImage = await imageLoader("images/cliffBackground.png");
-        let bgImages = [bgImage, cliffBgImage];
+        let bgImages = [bgImage, bgImage, bgImage, cliffBgImage];
 
         let piedPiperSprite = await imageLoader("images/piedPiperSprite.png");
         let ratSprite = await imageLoader("images/ratSprite.png");
@@ -218,10 +286,12 @@ $(document).ready(async () => {
                 Math.random()*window.innerWidth,
                 constants.pavement.startY+Math.random()*constants.pavement.range,
                 ratSprite,
-                2+Math.random(),
+                4+Math.random(),
                 constants.rat.animationSpeed,
                 1+Math.random(),
-                constants.rat.animationMod
+                constants.rat.animationMod,
+                constants.rat.projectileFall,
+                RAT,
             ));
         }
         let piedPiper = new Character(
@@ -231,7 +301,9 @@ $(document).ready(async () => {
             constants.piedPiper.speed,
             constants.piedPiper.animationSpeed,
             constants.piedPiper.startingState,
-            constants.piedPiper.animationMod
+            constants.piedPiper.animationMod,
+            constants.piedPiper.projectileFall,
+            PIED_PIPER,
         );
         window.addEventListener("keydown", (e) => {
             if (e.keyCode == 37) {
@@ -252,7 +324,7 @@ $(document).ready(async () => {
         });
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
-            ctx.drawImage(bgImages[chooseBg(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
+            ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
             for(let i=0;i<constants.numberOfRats;i++){
                 updateRat(rats[i], piedPiper);
                 ctx.drawImage(ratSprite,
