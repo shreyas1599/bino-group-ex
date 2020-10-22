@@ -34,6 +34,9 @@ constants = {
         animationSpeed: 0.2,
         startingState: 2,
         animationMod: 4
+    },
+    scene: {
+        state: 0,
     }
 }
 
@@ -110,13 +113,42 @@ let initCanvas = (canvasId) => {
     return ctx;
 }
 
-let chooseBg = (position) => {
-    let windowWidth = window.innerWidth;
-    if(position < windowWidth){
-        return 0;
+// direction 1 => left to right scene change; -1 => reverse
+let updateRatPositionForSceneChange = (rats, direction) => {
+    if(direction == -1) {
+        for(let i = 0; i < constants.numberOfRats; i++) {
+            rats[i].x = window.innerWidth - rats[i].x;
+        }
+    } else if (direction == 1) {
+        for(let i = 0; i < constants.numberOfRats; i++) {
+            rats[i].x = constants.piedPiper.startLocation.x;
+        }
     }
-    else if (position >= windowWidth && position < windowWidth*5){
-        return 1;
+}
+
+let chooseBg = (position, piedPiper, rats) => {
+    let windowWidth = window.innerWidth;
+    if (position <= constants.piedPiper.startLocation.x) {
+        if(constants.scene.state === 1) {
+            piedPiper.x = windowWidth*3/4;
+            constants.scene.state = 0;
+            updateRatPositionForSceneChange(rats, -1);
+        }
+        return constants.scene.state;
+    }
+    else if(position < windowWidth*3/4) {
+        return constants.scene.state;
+    }
+    else if (position >= windowWidth*3/4 && position < windowWidth*5){
+        if(constants.scene.state == 0) {
+            constants.scene.state = 1;
+            piedPiper.x = constants.piedPiper.startLocation.x;
+            updateRatPositionForSceneChange(rats, 1);
+        }
+        if (constants.scene.state === 1) {
+            // fill dialogue
+        }
+        return constants.scene.state;
     }
 }
 
@@ -151,7 +183,7 @@ let updateRat = (rat, piedPiper) => {
         }
         if(rat.state == 1){
             rat.movingDirection.left = true;
-            rat.movingDirection.right = false
+            rat.movingDirection.right = false;
         }
         else {
             rat.movingDirection.right = true;
@@ -163,7 +195,7 @@ let updateRat = (rat, piedPiper) => {
 
 $(document).ready(async () => {
 
-    $('#followPiperBtn').click(fucntion => {
+    $('#followPiperBtn').click(() => {
         followPiper = !followPiper;
         if(followPiper)
         $('#followPiperBtn').text("Unfollow Piper");
@@ -222,7 +254,7 @@ $(document).ready(async () => {
         });
         return () => {
             ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
-            ctx.drawImage(bgImages[chooseBg(piedPiper.x)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
+            ctx.drawImage(bgImages[chooseBg(piedPiper.x, piedPiper, rats)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
             for(let i=0;i<constants.numberOfRats;i++){
                 updateRat(rats[i], piedPiper);
                 ctx.drawImage(ratSprite,
