@@ -66,9 +66,9 @@ let state = {
     deadRats: false,
     enableBoySprites: 0,
     dontMove: false,
+    deadBoys: false,
 };
 
-console.log(constants)
 let isInsideCanvas = (position) => {
     /**
      * 0 - canvas size -> blank
@@ -79,7 +79,7 @@ let isInsideCanvas = (position) => {
     return position >= 0 && position < 4*constants.canvas.width;
 }
 
-const [PIED_PIPER, RAT] = [0, 1];
+const [PIED_PIPER, RAT, BOY] = [0, 1, 2];
 
 class Character {
     constructor(x, y, image, speed, animationSpeed, state, animationMod, projectileFall, characterName, dialogues) {
@@ -124,7 +124,7 @@ class Character {
                 this.animationStep = (this.animationStep + this.animationSpeed) % this.animationMod;
             }
         } else {
-            this.x += this.speed;
+            this.x += 2*this.speed;
             if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2)){
                 this.x-=this.speed;
             }
@@ -135,7 +135,11 @@ class Character {
         // Dialogue Triggers
         if(this.characterName == PIED_PIPER){
             this.dialogues.forEach((dialogue, index, reference) => {
+                console.log(dialogue);
                 if(dialogue.name === "bitch betta have my money" && !state.deadRats){
+                    return;
+                }
+                if(dialogue.name === "drowning boys" && !state.deadBoys) {
                     return;
                 }
                 if (dialogue.triggerScene == state.scene && Math.abs(this.x - dialogue.triggerPosition) < 20 && !dialogue.triggered) {
@@ -307,6 +311,10 @@ let updateRat = (rat, piedPiper) => {
     }
     if(state.scene == 3 && rat.x >= constants.canvas.width*0.52) {
         rat.projectileFall = 1;
+        if(rat.characterName === BOY) {
+            state.deadBoys = 1;
+            // alert()
+        }
         state.deadRats = 1;
     }
     rat.update();
@@ -314,6 +322,26 @@ let updateRat = (rat, piedPiper) => {
 
 $(document).ready(async () => {
 
+    // document.getElementById('curtainId').onclick = () => {
+    //     $('#curtainId').className = 'curtain';
+    // }
+
+    let revealCurtain = (() => { 
+        $(document).on("click", "#curtain-id", () => {
+        $('#curtain-id').attr('class', 'curtain');
+        $('.introduction-image').css('display', 'none');
+    })});
+
+
+
+    // $('#followPiperBtn').click(() => {
+    //     state.followPiper = !state.followPiper;
+    //     if(state.followPiper)
+    //     $('#followPiperBtn').text("Unfollow Piper");
+    //     else
+    //     $('#followPiperBtn').text("Follow Piper");
+    // });
+    
     let renderArrows = () => {
         switch (state.scene){
             case 0:{
@@ -447,7 +475,17 @@ $(document).ready(async () => {
                     "Pied Piper: Take that you filthy vermin!",
                     "Pied Piper: I better go collect my money now!" 
                 ]
-            )
+            ),
+            new Dialog(
+                "drowning boys",
+                constants.canvas.width*0.54,
+                3,
+                [
+                    "Narrator : When the king found out what had happened, he was enraged!",
+                    "Narrator: He placed a bounty of 200 gold coins on the Pied Piper's head.", 
+                    "Narrator: Yet he was never to be found!",
+                ],
+            ),
         ];
 
         
@@ -465,7 +503,7 @@ $(document).ready(async () => {
                 1+Math.random(),
                 constants.rat.animationMod,
                 constants.rat.projectileFall,
-                RAT, 
+                BOY, 
             ));
         }
         let piedPiper = new Character(
@@ -500,6 +538,10 @@ $(document).ready(async () => {
                         state.dontMove = false;
                     }
                 }
+                if(piedPiper.dialogues.length == index) {
+                    $('#curtain-ending').css('display', 'block');
+                    $('#curtain-ending').attr('class', 'curtain-end');
+                }
             });
         }
         changePiperSprite = text => {
@@ -526,7 +568,7 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.left = true; 
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = true;
-            } else if (e.keyCode == 17){
+            } else if (e.keyCode == 70){
                 state.followPiper = true;
                 changePiperSprite("play");
             }
@@ -539,7 +581,7 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.left = false;
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = false;
-            } else if (e.keyCode == 17) { //
+            } else if (e.keyCode == 70) { //
                 state.followPiper = false;
                 changePiperSprite("stop");
             } else if (e.keyCode == 32) {
@@ -551,6 +593,7 @@ $(document).ready(async () => {
             ctx.clearRect(0, 0, constants.canvas.width, constants.canvas.height);
             ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, constants.canvas.width,constants.canvas.height);
             renderArrows();
+            revealCurtain(); 
             if (state.scene==0){
                 ctx.drawImage(houseSprite,0,350,350,350,constants.canvas.width/50,constants.canvas.height/2.3,100,90);
                 ctx.drawImage(houseSprite,720,350,350,350,constants.canvas.width/5.5,constants.canvas.height/2.3,100,90);
