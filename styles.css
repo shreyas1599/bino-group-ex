@@ -10,12 +10,14 @@
 #leftArrow{
     position: absolute;
     top: 60%;
-    left: 15%;
+    left: 20%;
+    display: none;
 }
 #rightArrow{
     position: absolute;
     top: 60%;
-    right: 15%;
+    right: 20%;
+    display: none;
 }
 
 .blinking {

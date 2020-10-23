@@ -1,10 +1,13 @@
 constants = {
+    canvas:{
+        width: window.innerWidth*3/4,
+        height: window.innerHeight*3/4
+    },
     numberOfRats: 100,
     numberOfBoys: 6,
-    cliffEdge: window.innerWidth*0.37,
     pavement: {
-        startY: 240,
-        range: 100
+        startY: window.innerHeight*3/7,
+        range: window.innerHeight/10
     },
     boy: {
         spriteSize: {
@@ -36,8 +39,8 @@ constants = {
     },
     piedPiper: {
         startLocation: {
-            x: 130,
-            y: 280
+            x: window.innerWidth/8,
+            y: window.innerHeight*3/7
         },
         spriteSize: {
             width: 32,
@@ -65,7 +68,7 @@ let state = {
     dontMove: false,
 };
 
-
+console.log(constants)
 let isInsideCanvas = (position) => {
     /**
      * 0 - canvas size -> blank
@@ -73,7 +76,7 @@ let isInsideCanvas = (position) => {
      * canvas*2 - canvas*3 -> houses
      * canvas*3 - canvas*4 -> cliff
      */
-    return position >= 0 && position < 5*window.innerWidth;
+    return position >= 0 && position < 4*constants.canvas.width;
 }
 
 const [PIED_PIPER, RAT] = [0, 1];
@@ -107,7 +110,7 @@ class Character {
             if (this.movingDirection.right) {
                 this.x += this.speed;
                 if(!isInsideCanvas(this.x+constants.piedPiper.actualSize.width/2) ||
-                (this.characterName == PIED_PIPER && this.x >= constants.cliffEdge && state.scene == 3)){
+                (this.characterName == PIED_PIPER && this.x >= constants.canvas.width*0.54 && state.scene == 3)){
                     this.x-=this.speed;
                 }
                 this.state = 2;
@@ -181,8 +184,8 @@ let imageLoader = (imagePath) => {
 let initCanvas = (canvasId) => {
     let canvas = $("#" + canvasId).get(0);
     let ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth*3/4;
-    canvas.height = window.innerHeight*3/4;
+    canvas.width = constants.canvas.width
+    canvas.height = constants.canvas.height
     return ctx;
 }
 
@@ -190,27 +193,20 @@ let initCanvas = (canvasId) => {
 let updateRatOrBoyPositionForSceneChange = (rats, numberOfBoysOrRats, direction) => {
     if(direction == -1) {
         for(let i = 0; i < numberOfBoysOrRats; i++) {
-            rats[i].x = window.innerWidth - rats[i].x;
+            rats[i].x = constants.canvas.width - rats[i].x;
         }
     } else if (direction == 1) {
         for(let i = 0; i < numberOfBoysOrRats; i++) {
             rats[i].x = constants.piedPiper.startLocation.x - 130;
         }
     }
-    if(state.scene === 3 || state.scene == 2){
-        for(let i=0;i< constants.numberOfBoysOrRats; i++){
-            if(!rats[i].projectileFall)
-            rats[i].y = constants.piedPiper.startLocation.y - 10 + Math.random()*30;
-        }
-    }
 }
 
 
 let sceneUpdate = (position, piedPiper, rats, boys) => {
-    let windowWidth = window.innerWidth;
     switch(state.scene) {
         case 0: {
-            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+            if (position >= constants.canvas.width && position < constants.canvas.width*4) {
                 state.scene = 1;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
@@ -221,7 +217,7 @@ let sceneUpdate = (position, piedPiper, rats, boys) => {
             break;
         }
         case 1: {
-            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+            if (position >= constants.canvas.width && position < constants.canvas.width*4) {
                 state.scene = 2;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
@@ -229,7 +225,7 @@ let sceneUpdate = (position, piedPiper, rats, boys) => {
                     updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, 1);
                 }
             } else if(position <= constants.piedPiper.startLocation.x) {
-                piedPiper.x = windowWidth*3/4;
+                piedPiper.x = constants.canvas.width;
                 state.scene = 0;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
                 if(state.enableBoySprites) {
@@ -239,7 +235,7 @@ let sceneUpdate = (position, piedPiper, rats, boys) => {
             break;
         }
         case 2: {
-            if (position >= windowWidth*3/4 && position < windowWidth*5) {
+            if (position >= constants.canvas.width && position < constants.canvas.width*4) {
                 state.scene = 3;
                 piedPiper.x = constants.piedPiper.startLocation.x;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, 1);
@@ -247,7 +243,7 @@ let sceneUpdate = (position, piedPiper, rats, boys) => {
                     updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, 1);
                 } 
             } else if(position <= constants.piedPiper.startLocation.x) {
-                piedPiper.x = windowWidth*3/4;
+                piedPiper.x = constants.canvas.width;
                 state.scene = 1;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
                 if(state.enableBoySprites) {
@@ -259,7 +255,7 @@ let sceneUpdate = (position, piedPiper, rats, boys) => {
         case 3: {
             if(position <= constants.piedPiper.startLocation.x) {
                 state.scene = 2;
-                piedPiper.x = windowWidth*3/4;
+                piedPiper.x = constants.canvas.width;
                 updateRatOrBoyPositionForSceneChange(rats, constants.numberOfRats, -1);
                 if(state.enableBoySprites) {
                     updateRatOrBoyPositionForSceneChange(boys, constants.numberOfBoys, -1);
@@ -290,10 +286,10 @@ let updateRat = (rat, piedPiper) => {
         }
     }
     else{
-        let pos = Math.floor(rat.x/window.innerWidth);
+        let pos = Math.floor(rat.x/constants.canvas.width);
         let ratRange = {
-            left: pos*window.innerWidth,
-            right: (pos+1)*window.innerWidth
+            left: pos*constants.canvas.width,
+            right: (pos+1)*constants.canvas.width
         } 
         if(Math.abs(rat.x - ratRange.left) < constants.rat.spriteSize.width)
             rat.state = 2;
@@ -309,7 +305,7 @@ let updateRat = (rat, piedPiper) => {
             rat.movingDirection.left = false;
         }
     }
-    if(state.scene == 3 && rat.x >= window.innerWidth*0.35) {
+    if(state.scene == 3 && rat.x >= constants.canvas.width*0.52) {
         rat.projectileFall = 1;
         state.deadRats = 1;
     }
@@ -318,14 +314,6 @@ let updateRat = (rat, piedPiper) => {
 
 $(document).ready(async () => {
 
-    // $('#followPiperBtn').click(() => {
-    //     state.followPiper = !state.followPiper;
-    //     if(state.followPiper)
-    //     $('#followPiperBtn').text("Unfollow Piper");
-    //     else
-    //     $('#followPiperBtn').text("Follow Piper");
-    // });
-    
     let renderArrows = () => {
         switch (state.scene){
             case 0:{
@@ -374,7 +362,7 @@ $(document).ready(async () => {
         let ctx = initCanvas("canvas");
         let bgImage = await imageLoader("images/background.png");
         let cliffBgImage = await imageLoader("images/cliffBackground.png");
-        let caveBgImage = await imageLoader("images/caveBackground.jpg");
+        let caveBgImage = await imageLoader("images/caveBackground.png");
         let bgImages = [bgImage, bgImage, caveBgImage, cliffBgImage];
 
 
@@ -391,7 +379,7 @@ $(document).ready(async () => {
         let rats = [];
         for(let i =0;i<constants.numberOfRats;i++){
             rats.push(new Character(
-                Math.random()*window.innerWidth,
+                Math.random()*constants.canvas.width,
                 constants.pavement.startY+Math.random()*constants.pavement.range,
                 ratSprite,
                 4+Math.random(),
@@ -405,7 +393,7 @@ $(document).ready(async () => {
         let dialogues = [
             new Dialog(
                 "init",
-                515,
+                constants.canvas.width/3,
                 0,
                 [
                     "Villager #1: They’re in my storeroom!",
@@ -418,7 +406,7 @@ $(document).ready(async () => {
             ),
             new Dialog(
                 "king",
-                550,
+                constants.canvas.width/1.8,
                 1,
                 [
                     "King: Does anyone have a new idea?",
@@ -436,7 +424,7 @@ $(document).ready(async () => {
             ),
             new Dialog(
                 "bitch betta have my money",
-                550,
+                constants.canvas.width/1.8,
                 1,
                 [
                     "Pied Piper: I have now wiped out every single rat in Hamlin.",
@@ -453,7 +441,7 @@ $(document).ready(async () => {
             ),
             new Dialog(
                 "drowing rats",
-                constants.cliffEdge,
+                constants.canvas.width*0.54,
                 3,
                 [
                     "Pied Piper: Take that you filthy vermin!",
@@ -469,7 +457,7 @@ $(document).ready(async () => {
             let boySprite = await imageLoader("images/boys/boySprites" + i.toString() + ".png");
             boySprites.push(boySprite);
             boys.push(new Character(
-                Math.random()*window.innerWidth,
+                Math.random()*constants.canvas.width,
                 constants.pavement.startY+Math.random()*constants.pavement.range,
                 boySprite,
                 4+Math.random(),
@@ -493,9 +481,9 @@ $(document).ready(async () => {
             dialogues
         );
         drawDialogue = text => {
-            ctx.drawImage(dialogueBox, 200, 400, window.innerWidth/2, 75);
-            ctx.font = "18px Comic Sans MS";
-            ctx.fillText(text, 220, 450);
+            ctx.drawImage(dialogueBox, constants.canvas.width/8 , window.innerHeight/1.6, constants.canvas.width*3/4, 75);
+            ctx.font = "1.5vw Comic Sans MS";
+            ctx.fillText(text,constants.canvas.width/6 , window.innerHeight/1.6 + 50);
         }
 
 
@@ -514,7 +502,7 @@ $(document).ready(async () => {
                 }
             });
         }
-        shiftPiper = text => {
+        changePiperSprite = text => {
             if(text === "play"){
                 piedPiper.image = piedPiperMusicSprite;
                 piedPiper.animationMod = 10;
@@ -540,7 +528,7 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.right = true;
             } else if (e.keyCode == 17){
                 state.followPiper = true;
-                shiftPiper("play");
+                changePiperSprite("play");
             }
             
             return false;
@@ -553,49 +541,49 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.right = false;
             } else if (e.keyCode == 17) { //
                 state.followPiper = false;
-                shiftPiper("stop");
+                changePiperSprite("stop");
             } else if (e.keyCode == 32) {
                 progressDialogue();
             }            
             return false;
         });
         return () => {
-            ctx.clearRect(0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
-            ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, window.innerWidth*3/4, window.innerHeight*3/4);
+            ctx.clearRect(0, 0, constants.canvas.width, constants.canvas.height);
+            ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, constants.canvas.width,constants.canvas.height);
             renderArrows();
             if (state.scene==0){
-                ctx.drawImage(houseSprite,0,   350,350,350,0,  200, 100, 90);
-                ctx.drawImage(houseSprite,720, 350,350,350,160,200, 100, 90); 
-                ctx.drawImage(houseSprite,0,   350,350,350,310,  200, 100, 90);
-                ctx.drawImage(houseSprite,350, 350,350,350,390, 200, 100, 90);
-                ctx.drawImage(houseSprite,0,   0,350,350,0,  362, 100, 90);
-                ctx.drawImage(houseSprite,720, 0,350,350,150,362, 100, 90);
-                ctx.drawImage(houseSprite,0,   350,350,350,285,  375, 100, 90);
-                ctx.drawImage(houseSprite,720, 350,350,350,465,375, 100, 90); 
-                ctx.drawImage(houseSprite,0,   0,350,350,615,  362, 100, 90);
-                ctx.drawImage(houseSprite,1040,0,350,350,825,362, 100, 90);
-                ctx.drawImage(randompeople,100,0,350,350,315, 245, 230, 220);
-                ctx.drawImage(randompeople,200,0,350,350,15, 245, 230, 220);
-                ctx.drawImage(randompeople,150,0,350,350,515, 300, 230, 220);
+                ctx.drawImage(houseSprite,0,350,350,350,constants.canvas.width/50,constants.canvas.height/2.3,100,90);
+                ctx.drawImage(houseSprite,720,350,350,350,constants.canvas.width/5.5,constants.canvas.height/2.3,100,90);
+                ctx.drawImage(houseSprite,0,350,350,350,constants.canvas.width/3.5,constants.canvas.height/2.3,100,90);
+                ctx.drawImage(houseSprite,350,350,350,350,constants.canvas.width/2.7,constants.canvas.height/2.3,100,90);
+                ctx.drawImage(houseSprite,0,0,350,350,constants.canvas.width/50,constants.canvas.height/1.4,100,90);
+                ctx.drawImage(houseSprite,720,0,350,350,constants.canvas.width/7.5,constants.canvas.height/1.4,100,90);
+                ctx.drawImage(houseSprite,0,350,350,350,constants.canvas.width/4,constants.canvas.height/1.38,100,90);
+                ctx.drawImage(houseSprite,720,350,350,350,constants.canvas.width/2.5,constants.canvas.height/1.38,100,90);
+                ctx.drawImage(houseSprite,0,0,350,350,constants.canvas.width/1.8,constants.canvas.height/1.42,100,90);
+                ctx.drawImage(houseSprite,1040,0,350,350,constants.canvas.width/1.4,constants.canvas.height/1.42,100,90);
+                ctx.drawImage(randompeople,200,0,350,350,constants.canvas.width/50,constants.canvas.height/1.8,230,220);
+                ctx.drawImage(randompeople,100,0,350,350,constants.canvas.width/2,constants.canvas.height/1.5,230,220);
+                ctx.drawImage(randompeople,150,0,350,350,constants.canvas.width/3,constants.canvas.height/1.8,230,220);
             }
 
             if (state.scene==1){
-                ctx.drawImage(castleBgImage, 510, 110, 210, 160);
-                ctx.drawImage(houseSprite,340, 350,350,350,80, 200, 100, 90);
-                ctx.drawImage(houseSprite,1040,350,350,350,240,200, 110, 90);
-                ctx.drawImage(houseSprite,0,   0,350,350,0,  392, 100, 90);
-                ctx.drawImage(houseSprite,350, 0,350,350,70, 392, 100, 90);
-                ctx.drawImage(houseSprite,1040,0,350,350,230,392, 100, 90);
-                ctx.drawImage(houseSprite,0,   350,350,350,285,  395, 100, 90);
-                ctx.drawImage(houseSprite,350, 350,350,350,375, 395, 100, 90);
-                ctx.drawImage(houseSprite,1040,350,350,350,545,395, 110, 90);
-                ctx.drawImage(houseSprite,350, 0,350,350,685, 382, 100, 90);
-                ctx.drawImage(houseSprite,720, 0,350,350,755,382, 100, 90);
-                ctx.drawImage(houseSprite,1040,0,350,350,825,382, 100, 90);
-                ctx.drawImage(randompeople,0,0,350,350,215, 245, 230, 220);
-                ctx.drawImage(randompeople,100,0,350,350,115, 245, 230, 220);
-                ctx.drawImage(randompeople,0,0,350,350,715, 245, 230, 220);
-                ctx.drawImage(king,550, 260, 50, 50);
+                ctx.drawImage(castleBgImage,constants.canvas.width/2,constants.canvas.height/3.8,200,160);
+                ctx.drawImage(houseSprite,340,350,350,350,constants.canvas.width/12,constants.canvas.height/2.3,100,90);
+                ctx.drawImage(houseSprite,1040,350,350,350,constants.canvas.width/4,constants.canvas.height/2.3,110,90);
+                ctx.drawImage(houseSprite,0,0,350,350,constants.canvas.width/50,constants.canvas.height/1.42,100,90);
+                ctx.drawImage(houseSprite,350,0,350,350,constants.canvas.width/10,constants.canvas.height/1.42,100,90);
+                ctx.drawImage(houseSprite,1040,0,350,350,constants.canvas.width/4,constants.canvas.height/1.44,100,90);
+                ctx.drawImage(houseSprite,0,350,350,350,constants.canvas.width/3.3,constants.canvas.height/1.4,100,90);
+                ctx.drawImage(houseSprite,350,350,350,350,constants.canvas.width/2.6,constants.canvas.height/1.4,100,90);
+                ctx.drawImage(houseSprite,1040,350,350,350,constants.canvas.width/1.8,constants.canvas.height/1.4,110,90);
+                ctx.drawImage(houseSprite,350,0,350,350,constants.canvas.width/1.5,constants.canvas.height/1.44,100,90);
+                ctx.drawImage(houseSprite,720,0,350,350,constants.canvas.width/1.35,constants.canvas.height/1.44,100,90);
+                ctx.drawImage(houseSprite,1040,0,350,350,constants.canvas.width/1.23,constants.canvas.height/1.46,100,90);
+                ctx.drawImage(randompeople,0,0,350,350,constants.canvas.width/4,constants.canvas.height/1.9,230,220);
+                ctx.drawImage(randompeople,100,0,350,350,constants.canvas.width/7,constants.canvas.height/1.9,230,220);
+                ctx.drawImage(randompeople,0,0,350,350,constants.canvas.width/1.4,constants.canvas.height/1.9,230,220);
+                ctx.drawImage(king,constants.canvas.width/1.8,constants.canvas.height/1.9,50,50);
                 if(state.deadRats) {
                     state.enableBoySprites = 1;
                 }
@@ -615,12 +603,7 @@ $(document).ready(async () => {
                         constants.rat.actualSize.height
                     );
                 }
-              
-                
-               
             }
-    
-                //</random people>
 
             if(state.deadRats && state.enableBoySprites) {
                 for(let i=0;i<constants.numberOfBoys;i++){
@@ -641,6 +624,7 @@ $(document).ready(async () => {
             if(!state.dontMove){
                 piedPiper.update();
             }
+
             ctx.drawImage(piedPiper.image,
                 Math.floor(piedPiper.animationStep) * constants.piedPiper.spriteSize.width, // sprite offset
                 (piedPiper.state -1) * constants.piedPiper.spriteSize.height,
@@ -657,15 +641,10 @@ $(document).ready(async () => {
                     drawDialogue(dialogue.dialogues[dialogue.triggerIndex]);
                 }
             });
+
             requestAnimationFrame(animate);
         }
     })();
 
     animate();
 });
-
-
-
-
-
-
