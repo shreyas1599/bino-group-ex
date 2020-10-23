@@ -137,7 +137,6 @@ class Character {
         // Dialogue Triggers
         if(this.characterName == PIED_PIPER){
             this.dialogues.forEach((dialogue, index, reference) => {
-                console.log(dialogue);
                 if(dialogue.name === "bitch betta have my money" && !state.deadRats){
                     return;
                 }
@@ -581,6 +580,7 @@ $(document).ready(async () => {
             else if (text === "stop"){
                 piedPiper.image = piedPiperSprite;
                 piedPiper.animationMod = 4;
+                piedPiper.animationStep %= piedPiper.animationMod;
                 constants.piedPiper.actualSize.height = 48;
                 constants.piedPiper.spriteSize.height = 48;
                 constants.piedPiper.actualSize.width = 32;
@@ -699,7 +699,6 @@ $(document).ready(async () => {
             if(!state.dontMove){
                 piedPiper.update();
             }
-
             ctx.drawImage(piedPiper.image,
                 Math.floor(piedPiper.animationStep) * constants.piedPiper.spriteSize.width, // sprite offset
                 (piedPiper.state -1) * constants.piedPiper.spriteSize.height,
