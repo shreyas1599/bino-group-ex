@@ -67,6 +67,8 @@ let state = {
     enableBoySprites: 0,
     dontMove: false,
     deadBoys: false,
+    playBgMusic: true,
+    audio: {}
 };
 
 let isInsideCanvas = (position) => {
@@ -144,6 +146,9 @@ class Character {
                 }
                 if (dialogue.triggerScene == state.scene && Math.abs(this.x - dialogue.triggerPosition) < 20 && !dialogue.triggered) {
                     dialogue.trigger();
+                    if(dialogue.name === "drowning boys"){
+                        state.audio.playful.pause();
+                    }
                     for (let direction in this.movingDirection) {
                         this.movingDirection[direction] = false;
                     }
@@ -320,28 +325,31 @@ let updateRat = (rat, piedPiper) => {
     rat.update();
 }
 
+let initAudio = () => {
+    let audioSrc = ["playful","suspense1","suspense2"];
+    for(let src of audioSrc){
+        let audio = document.createElement('audio');
+        audio.setAttribute('src', 'music/'+src+'.mp3');
+        audio.addEventListener('ended', function() {
+            this.play();
+        }, false);
+        state.audio[src] = audio;
+    }
+}
+
+    
 $(document).ready(async () => {
-
-    // document.getElementById('curtainId').onclick = () => {
-    //     $('#curtainId').className = 'curtain';
-    // }
-
     let revealCurtain = (() => { 
         $(document).on("click", "#curtain-id", () => {
         $('#curtain-id').attr('class', 'curtain');
         $('.introduction-image').css('display', 'none');
+        if(state.playBgMusic){
+            state.audio.playful.play();
+            state.playBgMusic = false;
+        }
     })});
 
 
-
-    // $('#followPiperBtn').click(() => {
-    //     state.followPiper = !state.followPiper;
-    //     if(state.followPiper)
-    //     $('#followPiperBtn').text("Unfollow Piper");
-    //     else
-    //     $('#followPiperBtn').text("Follow Piper");
-    // });
-    
     let renderArrows = () => {
         switch (state.scene){
             case 0:{
@@ -446,8 +454,8 @@ $(document).ready(async () => {
                     "Pied Piper: Try me. If I’m successful...",
                     "Pied Piper: I demand a hundred gold coins!",
                     "King: Surely, a small price to pay for salvation!",
-                    "Hold CTRL to lure the rats",
-                    "Release CTRL to leave the rats to themselves"
+                    "Hold the CTRL key to lure the rats",
+                    "Release the CTRL key to leave the rats to themselves"
                 ]
             ),
             new Dialog(
@@ -464,7 +472,10 @@ $(document).ready(async () => {
                     "King: to pull this nasty little trick of yours?!",
                     "Pied Piper: Outrageous!",
                     "King: You will have no reward! You're henceforth banished!",
-                    "Pied Piper: Oh my! Your greed will cost you dearly!"
+                    "Pied Piper: Oh my! Your greed will cost you dearly!",
+                    "Hold the CTRL key to lure the kids",
+                    "Release the CTRL key to leave the kids"
+
                 ]
             ),
             new Dialog(
@@ -544,7 +555,7 @@ $(document).ready(async () => {
                 }
             });
         }
-        changePiperSprite = text => {
+        changePiperSpriteAndAudio = text => {
             if(text === "play"){
                 piedPiper.image = piedPiperMusicSprite;
                 piedPiper.animationMod = 10;
@@ -552,6 +563,15 @@ $(document).ready(async () => {
                 constants.piedPiper.spriteSize.height = 69;
                 constants.piedPiper.actualSize.width = 60.76;
                 constants.piedPiper.spriteSize.width = 60.76;
+
+                state.audio.playful.volume = 0;
+                if(state.deadRats){
+                    state.audio.suspense2.play();
+                    
+                } else {
+                    state.audio.suspense1.play();
+                    
+                }
             }
             else if (text === "stop"){
                 piedPiper.image = piedPiperSprite;
@@ -560,6 +580,11 @@ $(document).ready(async () => {
                 constants.piedPiper.spriteSize.height = 48;
                 constants.piedPiper.actualSize.width = 32;
                 constants.piedPiper.spriteSize.width = 32;
+
+                state.audio.playful.volume = 1;
+                state.audio.suspense2.pause();
+                state.audio.suspense1.pause();
+                
             }
         }
 
@@ -568,9 +593,9 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.left = true; 
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = true;
-            } else if (e.keyCode == 70){
+            } else if (e.keyCode == 17){
                 state.followPiper = true;
-                changePiperSprite("play");
+                changePiperSpriteAndAudio("play");
             }
             
             return false;
@@ -581,14 +606,16 @@ $(document).ready(async () => {
                 piedPiper.movingDirection.left = false;
             } else if (e.keyCode == 39) {
                 piedPiper.movingDirection.right = false;
-            } else if (e.keyCode == 70) { //
+            } else if (e.keyCode == 17) { //
                 state.followPiper = false;
-                changePiperSprite("stop");
+                changePiperSpriteAndAudio("stop");
             } else if (e.keyCode == 32) {
                 progressDialogue();
             }            
             return false;
         });
+
+        initAudio();   
         return () => {
             ctx.clearRect(0, 0, constants.canvas.width, constants.canvas.height);
             ctx.drawImage(bgImages[sceneUpdate(piedPiper.x, piedPiper, rats, boys)], 0, 0, constants.canvas.width,constants.canvas.height);
