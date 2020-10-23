@@ -432,7 +432,7 @@ $(document).ready(async () => {
                 constants.canvas.width/3,
                 0,
                 [
-                    "Villager #1: They’re in my storeroom!",
+                    "Villager #1: They’re in my storeroom! (Press Spacebar to continue)",
                     "Villager #2: They’re in my cupboards!",
                     "Villager #3: They’re in my baby’s cot!",
                     "Villager #1: What can we do?",
@@ -473,6 +473,7 @@ $(document).ready(async () => {
                     "Pied Piper: Outrageous!",
                     "King: You will have no reward! You're henceforth banished!",
                     "Pied Piper: Oh my! Your greed will cost you dearly!",
+                    "Pied Piper: Time for another trip to the Cliff's edge",
                     "Hold the CTRL key to lure the kids",
                     "Release the CTRL key to leave the kids"
 
@@ -492,9 +493,13 @@ $(document).ready(async () => {
                 constants.canvas.width*0.54,
                 3,
                 [
-                    "Narrator : When the king found out what had happened, he was enraged!",
+                    "Narrator: When the king found out what had happened, he was enraged!",
                     "Narrator: He placed a bounty of 200 gold coins on the Pied Piper's head.", 
                     "Narrator: Yet he was never to be found!",
+                    "Narrator: However, the villagers who had grown sick of the king...",
+                    "Narrator: ousted him from power!",
+                    "Narrator: And thus, the vain, miserly king learnt his lesson...",
+                    "Narrator: of not making promises he couldn't keep."
                 ],
             ),
         ];
